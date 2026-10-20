@@ -18,10 +18,10 @@
       var raw = localStorage.getItem(KEY);
       if (raw) {
         var s = JSON.parse(raw);
-        if (s && s.v === 2) return fixAccounts(s);
+        if (s && s.v === 2) { if (!s.settings.tilesV2) { s.settings.tiles = 'osm'; s.settings.tilesV2 = true; } return fixAccounts(s); }
         if (s && s.v === 1) { // keep earlier demo posts, add the new fields
           s.v = 2; s.accounts = [{ u: 'cougot', p: 'demo1234', role: 'omega' }]; s.account = { u: 'cougot' }; s.me = 'cougot'; s.relevant = {};
-          s.settings.tiles = 'osmdark'; s.settings.bannerMin = false; s.settings.drawer = 'peek';
+          s.settings.tiles = 'osm'; s.settings.tilesV2 = true; s.settings.bannerMin = false; s.settings.drawer = 'peek';
           return fixAccounts(s);
         }
       }
@@ -127,19 +127,43 @@
   }
 
   // ---------- map ----------
+  // Two-finger rotation only starts after a deliberate twist (Mapbox/MapLibre style: ~25 px of travel
+  // along the circle the fingers trace, doubled once a pinch-zoom is already under way), so pinching
+  // to zoom never rotates the map by accident. Once engaged, rotation continues from that point without a jump.
+  (function () {
+    var TG = L.Map.TouchGestures && L.Map.TouchGestures.prototype; if (!TG) return;
+    var start = TG._onTouchStart, move = TG._onTouchMove;
+    function angle(m, t) { var a = m.mouseEventToContainerPoint(t[0]), b = m.mouseEventToContainerPoint(t[1]); return { deg: Math.atan2(a.y - b.y, a.x - b.x) * 180 / Math.PI, d: a.distanceTo(b), v: a.subtract(b) }; }
+    TG._onTouchStart = function (e) {
+      start.call(this, e);
+      if (this._rotating && e.touches && e.touches.length === 2) { var g = angle(this._map, e.touches); this._rotA0 = g.deg; this._rotMinD = g.d; this._rotOn = false; }
+    };
+    TG._onTouchMove = function (e) {
+      if (this._rotating && !this._rotOn && e.touches && e.touches.length === 2) {
+        var m = this._map, g = angle(m, e.touches), d = ((g.deg - this._rotA0 + 540) % 360) - 180;
+        this._rotMinD = Math.min(this._rotMinD, g.d);
+        var zoomed = Math.abs(Math.log(g.d / this._startDist) / Math.LN2) > 0.1;
+        var limit = 25 / (Math.PI * Math.max(this._rotMinD, 40)) * 360 * (zoomed ? 2 : 1);
+        if (Math.abs(d) < limit) { this._rotating = false; move.call(this, e); this._rotating = true; return; }
+        this._rotOn = true; this._startTheta = Math.atan(g.v.x / g.v.y); this._startBearing = m.getBearing() + (g.v.y < 0 ? 180 : 0);
+      }
+      move.call(this, e);
+    };
+  })();
   var map = L.map('map', {
     zoomControl: false, attributionControl: true, tap: false, minZoom: 10, maxZoom: 18,
     rotate: true, touchRotate: true, rotateControl: false, compassBearing: false, bearing: 0
   }).setView([13.479, 144.775], 13);
+  window.__conradMap = map; // for automated tests only
   var TILESETS = {
-    osmdark: { name: 'Dark (OpenStreetMap)', dark: true, url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' } },
-    osm: { name: 'Light (OpenStreetMap)', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' } },
+    osm: { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' } },
+    osmdark: { name: 'OpenStreetMap (dark)', dark: true, url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' } },
     topo: { name: 'OpenTopoMap', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 17, attribution: 'Map data &copy; OpenStreetMap contributors, SRTM | Style &copy; OpenTopoMap (CC-BY-SA)' } },
     none: { name: 'No background', url: null }
   };
   var tiles = null, tileErrors = 0;
   function setTiles(k) {
-    if (!TILESETS[k]) k = 'osmdark';
+    if (!TILESETS[k]) k = 'osm';
     if (tiles) { map.removeLayer(tiles); tiles = null; }
     document.body.classList.remove('nomap'); document.body.classList.toggle('dark-tiles', !!TILESETS[k].dark); tileErrors = 0;
     var t = TILESETS[k]; if (!t.url) { document.body.classList.add('nomap'); return; }
@@ -147,7 +171,7 @@
     tiles.on('tileerror', function () { tileErrors++; if (tileErrors > 6) document.body.classList.add('nomap'); });
     tiles.on('tileload', function () { tileErrors = 0; document.body.classList.remove('nomap'); });
   }
-  setTiles(S.settings.tiles || 'osmdark');
+  setTiles(S.settings.tiles || 'osm');
   var outageLayer = L.layerGroup().addTo(map), feederLayer = L.layerGroup().addTo(map), zoneLayer = L.layerGroup().addTo(map), markerLayer = L.layerGroup().addTo(map);
   var meMarker = L.marker([ME.lat, ME.lng], { icon: L.divIcon({ className: '', html: '<div class="me-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), interactive: false, keyboard: false }).addTo(map);
   var dropMarker = null, lastDrop = 0;
@@ -815,7 +839,7 @@
     return '<div class="page">' + hdr('klein', 'Settings') + '<div class="body">' + account +
       '<div class="card" style="border:2px dashed #4100F5"><div class="lbl" style="color:#8B6CFF">Demo controls</div>' +
         (signed ? '<label class="row" style="justify-content:space-between"><b>Role</b><select class="input" style="width:150px;height:44px" data-change="role">' + ['user', 'admin', 'omega'].map(function (r) { return '<option value="' + r + '"' + (s.role === r ? ' selected' : '') + '>' + r[0].toUpperCase() + r.slice(1) + '</option>'; }).join('') + '</select></label>' : '') +
-        '<label class="row" style="justify-content:space-between"><b>Map style</b><select class="input" style="width:190px;height:44px" data-change="tiles">' + Object.keys(TILESETS).map(function (k) { return '<option value="' + k + '"' + ((s.tiles || 'osmdark') === k ? ' selected' : '') + '>' + TILESETS[k].name + '</option>'; }).join('') + '</select></label>' +
+        '<label class="row" style="justify-content:space-between"><b>Map style</b><select class="input" style="width:190px;height:44px" data-change="tiles">' + Object.keys(TILESETS).map(function (k) { return '<option value="' + k + '"' + ((s.tiles || 'osm') === k ? ' selected' : '') + '>' + TILESETS[k].name + '</option>'; }).join('') + '</select></label>' +
         '<label class="row" style="justify-content:space-between;min-height:44px"><b>Simulate tsunami warning</b><input type="checkbox" class="switch" data-change="tsunami"' + (S.tsunami ? ' checked' : '') + '></label>' +
         '<button class="btn sm red" data-act="reset">Reset demo data</button><div class="small muted">All places, people and statuses are fictional. Everything is saved on this phone only.</div></div>' +
       (isAdmin() ? '<button class="card" style="flex-direction:row;align-items:center" data-act="go" data-to="admin">' + ic('shield', 22) + '<span class="col grow" style="gap:0"><b>Admin console</b><span class="small muted">Moderation queue · imports' + (role() === 'omega' ? ' · roles' : '') + '</span></span>' + ic('chev', 18) + '</button>' : '') +

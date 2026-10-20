@@ -142,7 +142,7 @@ CONRAD.seed = function () {
   return {
     v: 2, me: 'guest', account: null, accounts: [{ u: 'cougot', p: 'demo1234', role: 'omega' }], relevant: {}, reports: reports, places: places, outages: outages, feeders: feeders, updates: updates, queue: queue,
     follows: { places: ['s1'], villages: ['Dededo'], feeders: ['P-280'], muted: {} },
-    settings: { role: 'omega', tiles: 'osmdark', bannerMin: false, drawer: 'peek', nTsunami: false, nWeather: true, nOfficial: true, nBack: true, nNear: false, nFollow: true, nReplies: true, threshold: 1, radius: '3 mi', home: 'Dededo', feeder: 'P-280' },
+    settings: { role: 'omega', tiles: 'osm', tilesV2: true, bannerMin: false, drawer: 'peek', nTsunami: false, nWeather: true, nOfficial: true, nBack: true, nNear: false, nFollow: true, nReplies: true, threshold: 1, radius: '3 mi', home: 'Dededo', feeder: 'P-280' },
     filters: { road: true, light: true, pole: true, outages: true, gas: true, store: true, supply: true, shelter: true, muster: true, tsunami: true, official: true, feeders: false, windowH: 24, older: false, from: '', to: '' },
     tsunami: false, frozen: false
   };
