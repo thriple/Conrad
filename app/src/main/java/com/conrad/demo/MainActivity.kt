@@ -100,6 +100,8 @@ class MainActivity : ComponentActivity() {
             setGeolocationEnabled(true)
             allowFileAccess = false
             allowContentAccess = true
+            // Identify the app to tile servers (OSM tile policy asks for a distinct User-Agent).
+            userAgentString = "$userAgentString ConradDemo/0.1 (+https://github.com/thriple/Conrad)"
         }
         webView.addJavascriptInterface(AppBridge(), "ConradAndroid")
 

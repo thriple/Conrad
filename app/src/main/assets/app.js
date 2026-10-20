@@ -86,12 +86,23 @@
 
   // ---------- map ----------
   var map = L.map('map', { zoomControl: false, attributionControl: true, tap: false, minZoom: 10, maxZoom: 18, maxBounds: [[12.9, 144.3], [13.9, 145.3]] }).setView([13.479, 144.775], 13);
-  var tileErrors = 0;
-  var tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 19, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-  }).addTo(map);
-  tiles.on('tileerror', function () { tileErrors++; if (tileErrors > 6) document.body.classList.add('nomap'); });
-  tiles.on('tileload', function () { tileErrors = 0; document.body.classList.remove('nomap'); });
+  // Keyless tile sources. OSM standard tiles are fine for light, on-screen use (no prefetching).
+  var TILESETS = {
+    osm: { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' } },
+    topo: { name: 'OpenTopoMap', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 17, attribution: 'Map data &copy; OpenStreetMap contributors, SRTM | Style &copy; OpenTopoMap (CC-BY-SA)' } },
+    none: { name: 'No background', url: null }
+  };
+  var tiles = null, tileErrors = 0;
+  function setTiles(k) {
+    if (!TILESETS[k]) k = 'osm';
+    if (tiles) { map.removeLayer(tiles); tiles = null; }
+    document.body.classList.remove('nomap'); tileErrors = 0;
+    var t = TILESETS[k]; if (!t.url) { document.body.classList.add('nomap'); return; }
+    tiles = L.tileLayer(t.url, t.opts).addTo(map); tiles.bringToBack();
+    tiles.on('tileerror', function () { tileErrors++; if (tileErrors > 6) document.body.classList.add('nomap'); });
+    tiles.on('tileload', function () { tileErrors = 0; document.body.classList.remove('nomap'); });
+  }
+  setTiles(S.settings.tiles || 'osm');
   var outageLayer = L.layerGroup().addTo(map), feederLayer = L.layerGroup().addTo(map), zoneLayer = L.layerGroup().addTo(map), markerLayer = L.layerGroup().addTo(map);
   var meMarker = L.marker([ME.lat, ME.lng], { icon: L.divIcon({ className: '', html: '<div class="me-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), interactive: false, keyboard: false }).addTo(map);
   var dropMarker = null, lastDrop = 0;
@@ -634,6 +645,7 @@
       '<div class="card" style="flex-direction:row;align-items:center;gap:12px">' + avatar(S.me) + '<div class="col grow" style="gap:0"><b>' + esc(S.me) + '</b><span class="small muted">' + S.reports.filter(function (r) { return r.by === S.me; }).length + ' reports</span></div>' + roleTag(S.me) + '</div>' +
       '<div class="card" style="border:2px dashed #4100F5"><div class="lbl" style="color:#4100F5">Demo controls</div>' +
         '<label class="row" style="justify-content:space-between"><b>Role</b><select class="input" style="width:150px;height:44px" data-change="role">' + ['user', 'admin', 'omega'].map(function (r) { return '<option value="' + r + '"' + (s.role === r ? ' selected' : '') + '>' + r[0].toUpperCase() + r.slice(1) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="row" style="justify-content:space-between"><b>Map style</b><select class="input" style="width:170px;height:44px" data-change="tiles">' + Object.keys(TILESETS).map(function (k) { return '<option value="' + k + '"' + ((s.tiles || 'osm') === k ? ' selected' : '') + '>' + TILESETS[k].name + '</option>'; }).join('') + '</select></label>' +
         '<label class="row" style="justify-content:space-between;min-height:44px"><b>Simulate tsunami warning</b><input type="checkbox" class="switch" data-change="tsunami"' + (S.tsunami ? ' checked' : '') + '></label>' +
         '<button class="btn sm red" data-act="reset">Reset demo data</button><div class="small muted">All places, people and statuses are fictional. Your posts are saved on this phone only.</div></div>' +
       (isAdmin() ? '<button class="card" style="flex-direction:row;align-items:center;text-align:left" data-act="go" data-to="admin">' + ic('shield', 22) + '<span class="col grow" style="gap:0"><b>Admin console</b><span class="small muted">Moderation queue · imports' + (role() === 'omega' ? ' · roles' : '') + '</span></span>' + ic('chev', 18) + '</button>' : '') +
@@ -865,6 +877,7 @@
     else if (c === 'setting') { S.settings[k] = t.type === 'checkbox' ? t.checked : (k === 'threshold' ? Math.max(1, Math.min(20, +t.value || 1)) : t.value.trim()); save(); renderAreas(); }
     else if (c === 'role') { S.settings.role = t.value; save(); renderRoute(true); toast('Role switched to ' + t.value + ' (demo).'); }
     else if (c === 'tsunami') { setTsunami(t.checked); }
+    else if (c === 'tiles') { S.settings.tiles = t.value; save(); setTiles(t.value); toast('Map style: ' + TILESETS[t.value].name); }
     else if (c === 'userRole') { S.roles = S.roles || {}; S.roles[k] = t.value; save(); toast(k + ' is now ' + t.value + '.'); }
   });
 
