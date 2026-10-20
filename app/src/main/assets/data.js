@@ -2,20 +2,20 @@
 var CONRAD = {};
 
 CONRAD.CATS = {
-  road:  { label: 'Road blocked', short: 'Road', color: '#C2410C', tint: '#FFE9E6', icon: 'alert', kinds: ['Police barrier', 'Flooding', 'Accident', 'Landslide', 'Other'] },
-  light: { label: 'Traffic light out', short: 'Light', color: '#A16207', tint: '#FDF3DC', icon: 'light', kinds: ['All directions', 'Flashing', 'Knocked down', 'Other'] },
-  pole:  { label: 'Pole / line damage', short: 'Pole', color: '#6D28D9', tint: '#EFE7FB', icon: 'bolt', kinds: ['Pole', 'Lines down', 'Transformer', 'Box', 'Other'] },
-  power: { label: 'No power here', short: 'No power', color: '#111827', tint: '#E7E9EC', icon: 'nopower', outage: true },
-  water: { label: 'No water here', short: 'No water', color: '#1D4ED8', tint: '#E3EAFB', icon: 'drop', outage: true }
+  road:  { label: 'Road blocked', short: 'Road', color: '#F97316', tint: '#FFE9E6', icon: 'alert', kinds: ['Police barrier', 'Flooding', 'Accident', 'Landslide', 'Other'] },
+  light: { label: 'Traffic light out', short: 'Light', color: '#FACC15', tint: '#FDF3DC', icon: 'light', kinds: ['All directions', 'Flashing', 'Knocked down', 'Other'] },
+  pole:  { label: 'Pole / line damage', short: 'Pole', color: '#A855F7', tint: '#EFE7FB', icon: 'bolt', kinds: ['Pole', 'Lines down', 'Transformer', 'Box', 'Other'] },
+  power: { label: 'No power here', short: 'No power', color: '#E5E7EB', tint: '#E7E9EC', icon: 'nopower', outage: true },
+  water: { label: 'No water here', short: 'No water', color: '#3B82F6', tint: '#E3EAFB', icon: 'drop', outage: true }
 };
 
 CONRAD.PLACES = {
-  gas:     { label: 'Gas station', short: 'Gas', color: '#15803D', tint: '#E2F4E8', icon: 'fuel' },
-  store:   { label: 'Store', short: 'Store', color: '#0E7490', tint: '#DDF1F5', icon: 'bag' },
-  supply:  { label: 'Supply point', short: 'Supply', color: '#B45309', tint: '#F8EADB', icon: 'box' },
-  shelter: { label: 'Shelter', short: 'Shelter', color: '#9D174D', tint: '#F7E1EA', icon: 'house' },
-  muster:  { label: 'Muster point', short: 'Muster', color: '#334155', tint: '#E5E8EC', icon: 'people' },
-  tsunami: { label: 'Tsunami safe spot', short: 'Tsunami', color: '#1E3A8A', tint: '#E1E6F2', icon: 'wave' }
+  gas:     { label: 'Gas station', short: 'Gas', color: '#22C55E', tint: '#E2F4E8', icon: 'fuel' },
+  store:   { label: 'Store', short: 'Store', color: '#22D3EE', tint: '#DDF1F5', icon: 'bag' },
+  supply:  { label: 'Supply point', short: 'Supply', color: '#F59E0B', tint: '#F8EADB', icon: 'box' },
+  shelter: { label: 'Shelter', short: 'Shelter', color: '#F43F5E', tint: '#F7E1EA', icon: 'house' },
+  muster:  { label: 'Muster point', short: 'Muster', color: '#94A3B8', tint: '#E5E8EC', icon: 'people' },
+  tsunami: { label: 'Tsunami safe spot', short: 'Tsunami', color: '#60A5FA', tint: '#E1E6F2', icon: 'wave' }
 };
 
 CONRAD.VILLAGES = [
@@ -140,9 +140,9 @@ CONRAD.seed = function () {
   ];
 
   return {
-    v: 1, me: 'cougot', reports: reports, places: places, outages: outages, feeders: feeders, updates: updates, queue: queue,
+    v: 2, me: 'guest', account: null, accounts: [{ u: 'cougot', p: 'demo1234', role: 'omega' }], relevant: {}, reports: reports, places: places, outages: outages, feeders: feeders, updates: updates, queue: queue,
     follows: { places: ['s1'], villages: ['Dededo'], feeders: ['P-280'], muted: {} },
-    settings: { role: 'omega', nTsunami: false, nWeather: true, nOfficial: true, nBack: true, nNear: false, nFollow: true, nReplies: true, threshold: 1, radius: '3 mi', home: 'Dededo', feeder: 'P-280' },
+    settings: { role: 'omega', tiles: 'osmdark', bannerMin: false, drawer: 'peek', nTsunami: false, nWeather: true, nOfficial: true, nBack: true, nNear: false, nFollow: true, nReplies: true, threshold: 1, radius: '3 mi', home: 'Dededo', feeder: 'P-280' },
     filters: { road: true, light: true, pole: true, outages: true, gas: true, store: true, supply: true, shelter: true, muster: true, tsunami: true, official: true, feeders: false, windowH: 24, older: false, from: '', to: '' },
     tsunami: false, frozen: false
   };
